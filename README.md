@@ -205,4 +205,6 @@
 
 ## 技术沟通
 
+加好友请注明来意
+
 ![联系微信](https://github.com/lileihappy123/msghelper/blob/main/images/8.wx.png)
