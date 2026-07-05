@@ -1,0 +1,4275 @@
+{
+  "info": {
+    "_postman_id": "msghelper-openapi-scenarios-20260626",
+    "name": "MsgHelper OpenAPI 场景化测试集合",
+    "description": "按业务场景组织的 OpenAPI Postman 集合：调用管理、微信管理、标签管理、好友管理、群管理、群发消息、自动加好友、发朋友圈、快捷回复、自动通过好友申请。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. 调用管理",
+      "item": [
+        {
+          "name": "ClientId 登录（client_credentials）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"clientId\": \"{{CLIENT_ID}}\",\n  \"clientSecret\": \"{{CLIENT_SECRET}}\",\n  \"loginMode\": \"client_credentials\",\n  \"scope\": \"msghelper.api\",\n  \"forceRelogin\": false\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/login",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const d = j?.data?.data || j?.data || {};",
+                  "const token = d?.accessToken || d?.access_token || '';",
+                  "const refresh = d?.refreshToken || d?.refresh_token || '';",
+                  "if (token) pm.collectionVariables.set('ACCESS_TOKEN', token);",
+                  "if (refresh) pm.collectionVariables.set('REFRESH_TOKEN', refresh);",
+                  "pm.test('获取 access token 成功', function () {",
+                  "  pm.expect(token).to.not.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API 配额查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/openapi-quota/balance?tenantId={{TENANT_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "openapi-quota",
+                "balance"
+              ],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 微信管理",
+      "item": [
+        {
+          "name": "获取登录的微信版本",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/get_opened_wx_version",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "get_opened_wx_version"
+              ]
+            }
+          }
+        },
+        {
+          "name": "获取登录的微信",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/get_opened_wxs",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "get_opened_wxs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const list = Array.isArray(j?.data) ? j.data : [];",
+                  "const first = list[0] || {};",
+                  "const wxName = first?.nickName || first?.wxName || '';",
+                  "const wxNo = first?.wxNo || '';",
+                  "const wxHwnd = Number(first?.hwnd || 0);",
+                  "if (wxName) pm.collectionVariables.set('WX_NAME', wxName);",
+                  "if (wxNo) pm.collectionVariables.set('WX_NO', wxNo);",
+                  "if (wxHwnd > 0) pm.collectionVariables.set('WX_HWND', String(wxHwnd));",
+                  "pm.test('获取微信成功并写入 WX_NAME/WX_NO/WX_HWND', function () {",
+                  "  pm.expect(list.length).to.be.above(0);",
+                  "  pm.expect(wxName).to.not.eql('');",
+                  "  pm.expect(wxHwnd).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "绑定微信（生成 WX_INSTANCE_ID）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "client-id",
+                "value": "{{CLIENT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"clientId\": \"{{CLIENT_ID}}\",\n  \"userId\": \"{{USER_ID}}\",\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxNo\": \"{{WX_NO}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/wx-bindings/bind",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "wx-bindings",
+                "bind"
+              ]
+            },
+            "description": "客户端本地绑定微信，返回业务字段 WX_INSTANCE_ID。重复绑定会返回 400。"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const id = j?.data?.wxInstanceId || '';",
+                  "if (id !== '') pm.collectionVariables.set('WX_INSTANCE_ID', String(id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "查询绑定微信列表",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "client-id",
+                "value": "{{CLIENT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/wx-bindings/list?tenantId={{TENANT_ID}}&clientId={{CLIENT_ID}}&userId={{USER_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "wx-bindings",
+                "list"
+              ],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                },
+                {
+                  "key": "clientId",
+                  "value": "{{CLIENT_ID}}"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{USER_ID}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "解绑微信",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "client-id",
+                "value": "{{CLIENT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/wx-bindings/unbind?tenantId={{TENANT_ID}}&clientId={{CLIENT_ID}}&userId={{USER_ID}}&wxInstanceId={{WX_INSTANCE_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "wx-bindings",
+                "unbind"
+              ],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                },
+                {
+                  "key": "clientId",
+                  "value": "{{CLIENT_ID}}"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{USER_ID}}"
+                },
+                {
+                  "key": "wxInstanceId",
+                  "value": "{{WX_INSTANCE_ID}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 标签管理",
+      "item": [
+        {
+          "name": "创建标签",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"VIP客户\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"description\": \"高价值客户\",\n  \"sort\": 0\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/tags",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tags"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const tagId = j?.data?.id || '';",
+                  "if (tagId !== '') pm.collectionVariables.set('TAG_ID', String(tagId));",
+                  "pm.test('创建标签成功并写入 TAG_ID', function () {",
+                  "  pm.expect(String(tagId)).to.not.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "查询标签列表",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/tags?wxInstanceId={{WX_INSTANCE_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tags"
+              ],
+              "query": [
+                {
+                  "key": "wxInstanceId",
+                  "value": "{{WX_INSTANCE_ID}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "更新标签",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{TAG_ID}}\",\n  \"name\": \"VIP客户（已更新）\",\n  \"description\": \"高价值客户更新描述\",\n  \"color\": \"#FF9900\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/tags",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tags"
+              ]
+            }
+          }
+        },
+        {
+          "name": "删除标签",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/tags/{{TAG_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "tags",
+                "{{TAG_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 好友管理",
+      "item": [
+        {
+          "name": "从微信导入好友（全量）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"userWxId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"sleepStart\": 0,\n  \"sleepEnd\": 0.5,\n  \"specificName\": \"\",\n  \"maxScrollTimes\": 3,\n  \"syncType\": \"full\",\n  \"strategy\": \"merge\",\n  \"updateOptions\": {\n    \"remark\": true,\n    \"tags\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/get_contacts_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "get_contacts_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "从微信导入好友（增量）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"userWxId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"sleepStart\": 0,\n  \"sleepEnd\": 0.5,\n  \"syncType\": \"incremental\",\n  \"recentNum\": 10\n  }"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/get_contacts_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "get_contacts_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "手动添加好友（仅系统）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contact\": {\n    \"wxNo\": \"wxid_manual_001\",\n    \"nickName\": \"手动好友A\",\n    \"remark\": \"手动添加\",\n    \"callName\": \"\",\n    \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n    \"userId\": \"{{USER_ID}}\",\n    \"tenantId\": \"{{TENANT_ID}}\"\n  },\n  \"tagIds\": [\"{{TAG_ID}}\"],\n  \"tagNames\": [\"客户\", \"手动\"]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "contacts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "好友查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts?wxInstanceId={{WX_INSTANCE_ID}}&limit=20&offset=0",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "contacts"
+              ],
+              "query": [
+                {
+                  "key": "wxInstanceId",
+                  "value": "{{WX_INSTANCE_ID}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const list = Array.isArray(j?.data?.list) ? j.data.list : [];",
+                  "const first = list[0] || {};",
+                  "const contactId = first?.id ?? first?.contactId ?? '';",
+                  "if (String(contactId) !== '') pm.collectionVariables.set('CONTACT_ID', String(contactId));",
+                  "const nickName = first?.nickName ?? first?.nick_name ?? '';",
+                  "const wxNo = first?.wxNo ?? first?.wx_no ?? '';",
+                  "const callName = first?.callName ?? first?.call_name ?? '';",
+                  "if (nickName !== '') pm.collectionVariables.set('CONTACT_NICK_NAME', nickName);",
+                  "if (wxNo !== '') pm.collectionVariables.set('CONTACT_WX_NO', wxNo);",
+                  "if (callName !== '') pm.collectionVariables.set('CONTACT_CALL_NAME', callName);",
+                  "pm.test('好友查询返回首条并写入 CONTACT_ID', function () {",
+                  "  pm.expect(list.length).to.be.above(0);",
+                  "  pm.expect(String(contactId)).to.not.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "仅删除系统",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts/{{CONTACT_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "contacts",
+                "{{CONTACT_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "删除系统+微信",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"syncType\": 0,\n  \"contacts\": [\n    {\n      \"id\": \"{{CONTACT_ID}}\",\n      \"wxNo\": \"wxid_demo_001\",\n      \"nickName\": \"测试好友A\",\n      \"remark\": \"测试备注\"\n    }\n  ],\n  \"optSleepTimeStart\": 0.5,\n  \"optSleepTimeEnd\": 1,\n  \"delSleepTimeStart\": 1,\n  \"delSleepTimeEnd\": 1.5\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/delete_contacts_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "delete_contacts_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "一键清空（仅系统）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts/clear_all",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "contacts",
+                "clear_all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "修改备注（仅微信）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"updateRemark\": true,\n  \"updateTags\": false,\n  \"syncType\": 0,\n  \"contacts\": [\n    {\n      \"id\": \"{{CONTACT_ID}}\",\n      \"wxNo\": \"wxid_demo_001\",\n      \"remark\": \"新备注\"\n    }\n  ],\n  \"optSleepTimeStart\": 0,\n  \"optSleepTimeEnd\": 0.5\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/update_contacts_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "update_contacts_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "修改标签（仅微信）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"updateRemark\": false,\n  \"updateTags\": true,\n  \"tags\": \"客户,高意向\",\n  \"syncType\": 0,\n  \"contacts\": [\n    {\n      \"id\": \"{{CONTACT_ID}}\",\n      \"wxNo\": \"wxid_demo_001\"\n    }\n  ],\n  \"optSleepTimeStart\": 0,\n  \"optSleepTimeEnd\": 0.5\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/update_contacts_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "update_contacts_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "批量改称呼（仅系统）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contactIds\": [\"{{CONTACT_ID}}\"],\n  \"source\": \"nickName\",\n  \"index\": 1,\n  \"suffix\": \"老师\",\n  \"onlyEmpty\": false\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts/call_name/batch",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "contacts",
+                "call_name",
+                "batch"
+              ]
+            }
+          }
+        },
+        {
+          "name": "同步好友（备注+标签，仅微信）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"updateRemark\": true,\n  \"updateTags\": true,\n  \"isSyncUp\": true,\n  \"syncType\": 3,\n  \"contacts\": [\n    {\n      \"id\": \"{{CONTACT_ID}}\",\n      \"wxNo\": \"wxid_demo_001\",\n      \"remark\": \"同步备注\",\n      \"tags\": \"客户,VIP\"\n    }\n  ],\n  \"optSleepTimeStart\": 0,\n  \"optSleepTimeEnd\": 0.5\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/update_contacts_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "update_contacts_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "修改单个联系人（仅系统）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contact\": {\n    \"id\": \"{{CONTACT_ID}}\",\n    \"wxNo\": \"wxid_demo_001\",\n    \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n    \"userId\": \"{{USER_ID}}\",\n    \"tenantId\": \"{{TENANT_ID}}\",\n    \"remark\": \"\",\n    \"callName\": \"\"\n  },\n  \"tagNames\": [\"客户\", \"高意向\"]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "contacts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "批量改标签（仅系统）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contactIds\": [\"{{CONTACT_ID}}\"],\n  \"tagIds\": [\"{{TAG_ID}}\"],\n  \"tagNames\": [\"客户\"],\n  \"mode\": \"replace\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts/tags/batch",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "contacts",
+                "tags",
+                "batch"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 群管理",
+      "item": [
+        {
+          "name": "从微信导入群聊（仅微信）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"optSleepTimeStart\": 0,\n  \"optSleepTimeEnd\": 0.5\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/get_groups",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "get_groups"
+              ]
+            }
+          }
+        },
+        {
+          "name": "手动添加群聊（仅系统）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": {\n    \"groupName\": \"手动群聊A\",\n    \"memberCount\": 0,\n    \"remark\": \"手动添加\",\n    \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n    \"userId\": \"{{USER_ID}}\",\n    \"tenantId\": \"{{TENANT_ID}}\"\n  },\n  \"tagIds\": [\"{{TAG_ID}}\"],\n  \"tagNames\": [\"客户群\", \"手动\"]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "groups"
+              ]
+            }
+          }
+        },
+        {
+          "name": "查询群聊（仅系统）",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups?wxInstanceId={{WX_INSTANCE_ID}}&userId={{USER_ID}}&tenantId={{TENANT_ID}}&limit=20&offset=0",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "groups"
+              ],
+              "query": [
+                {
+                  "key": "wxInstanceId",
+                  "value": "{{WX_INSTANCE_ID}}"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{USER_ID}}"
+                },
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const list = j?.data?.list || j?.data?.rows || j?.list || [];",
+                  "const first = Array.isArray(list) && list.length > 0 ? list[0] : null;",
+                  "const groupId = first?.id || first?.groupId || '';",
+                  "const groupName = first?.groupName || first?.group_name || first?.name || '';",
+                  "if (groupId !== '') pm.collectionVariables.set('GROUP_ID', String(groupId));",
+                  "if (groupName !== '') pm.collectionVariables.set('GROUP_NAME', String(groupName));",
+                  "pm.test('查询群聊成功并写入 GROUP_ID', function () {",
+                  "  pm.expect(Array.isArray(list)).to.eql(true);",
+                  "  pm.expect(String(groupId)).to.not.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "更新群聊标签（仅系统）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupIds\": [\"{{GROUP_ID}}\"],\n  \"tagIds\": [\"{{TAG_ID}}\"],\n  \"tagNames\": [\"客户群\"],\n  \"mode\": \"replace\",\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/batch_tags",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                "batch_tags"
+              ]
+            }
+          }
+        },
+        {
+          "name": "删除群聊（仅系统）",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/{{GROUP_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                "{{GROUP_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. 群发消息",
+      "item": [
+        {
+          "name": "群发消息-带称呼（文字+图片+文件）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"contacts\",\n  \"receiverMode\": \"include\",\n  \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}],\n  \"messages\": [\n    {\n      \"msg\": \"{称呼}您好，这是一条场景化群发测试消息\",\n      \"msgImgUrl\": \"{{IMG_URL}}\",\n      \"msgFileUrl\": \"{{FILE_URL}}\"\n    }\n  ],\n  \"sendSleepTimeStart\": 0,\n  \"sendSleepTimeEnd\": 0.5,\n  \"optSleepTimeStart\": 0,\n  \"optSleepTimeEnd\": 0.5,\n  \"checkDelete\": 0,\n  \"relaxedMode\": false\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "按标签群发好友",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"tags\",\n  \"receiverMode\": \"include\",\n  \"selectedTags\": [\"{{TAG_ID}}\"],\n  \"tagMatchAll\": false,\n  \"messages\": [{\"msg\": \"标签好友群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "按标签群发群",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"group_tags\",\n  \"receiverMode\": \"include\",\n  \"selectedTags\": [\"{{TAG_ID}}\"],\n  \"tagMatchAll\": false,\n  \"messages\": [{\"msg\": \"标签群群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "按选择群发好友",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"contacts\",\n  \"receiverMode\": \"include\",\n  \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}],\n  \"messages\": [{\"msg\": \"按选择好友群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "按选择群发群",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"groups\",\n  \"receiverMode\": \"include\",\n  \"selectedGroups\": [{\"id\": \"{{GROUP_ID}}\", \"name\": \"{{GROUP_NAME}}\", \"remark\": \"\", \"type\": 1}],\n  \"messages\": [{\"msg\": \"按选择群聊群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "按标签不发给好友",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"tags\",\n  \"receiverMode\": \"exclude\",\n  \"selectedTags\": [\"{{TAG_ID}}\"],\n  \"messages\": [{\"msg\": \"排除标签好友后群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "按标签不发给群",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"group_tags\",\n  \"receiverMode\": \"exclude\",\n  \"selectedTags\": [\"{{TAG_ID}}\"],\n  \"messages\": [{\"msg\": \"排除标签群聊后群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "按选择不发给好友",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"contacts\",\n  \"receiverMode\": \"exclude\",\n  \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}],\n  \"messages\": [{\"msg\": \"排除指定好友后群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "按选择不发给群",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"groups\",\n  \"receiverMode\": \"exclude\",\n  \"selectedGroups\": [{\"id\": \"{{GROUP_ID}}\", \"name\": \"{{GROUP_NAME}}\", \"remark\": \"\", \"type\": 1}],\n  \"messages\": [{\"msg\": \"排除指定群后群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "群发同时检测谁删了我",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"contacts\",\n  \"receiverMode\": \"include\",\n  \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}],\n  \"checkDelete\": 1,\n  \"messages\": [{\"msg\": \"开启删好友检测\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "宽松模式群发",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectMode\": \"contacts\",\n  \"receiverMode\": \"include\",\n  \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}],\n  \"relaxedMode\": true,\n  \"messages\": [{\"msg\": \"宽松模式群发\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/sendmsg_v2",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "sendmsg_v2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "群发历史查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mass_send/tasks?page=1&pageSize=20&userId={{USER_ID}}&tenantId={{TENANT_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "mass_send",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{USER_ID}}"
+                },
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "群发历史详情",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mass_send/{{MASS_SEND_LOG_ID}}/detail",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "mass_send",
+                "{{MASS_SEND_LOG_ID}}",
+                "detail"
+              ]
+            }
+          }
+        },
+        {
+          "name": "失败补发",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logId\": \"{{MASS_SEND_LOG_ID}}\",\n  \"mode\": \"retry_failed\",\n  \"wxInfo\": {\n    \"wxName\": \"{{WX_NAME}}\",\n    \"hwnd\": {{WX_HWND}}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/mass_send/execute",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "mass_send",
+                "execute"
+              ]
+            }
+          }
+        },
+        {
+          "name": "断点续发",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logId\": \"{{MASS_SEND_LOG_ID}}\",\n  \"mode\": \"resume\",\n  \"wxInfo\": {\n    \"wxName\": \"{{WX_NAME}}\",\n    \"hwnd\": {{WX_HWND}}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/mass_send/execute",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "mass_send",
+                "execute"
+              ]
+            }
+          }
+        },
+        {
+          "name": "删除群发历史",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mass_send/{{MASS_SEND_LOG_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "mass_send",
+                "{{MASS_SEND_LOG_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. 自动加好友",
+      "item": [
+        {
+          "name": "自动加好友",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taskName\": \"自动加好友\",\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectedResources\": [\n    {\n      \"id\": \"{{RESOURCE_ID}}\",\n      \"keyword\": \"wxid_target_001\",\n      \"nickname\": \"资源昵称\"\n    }\n  ],\n  \"applyMessage\": \"你好，我是XX\",\n  \"tags\": [\"客户\"],\n  \"permission\": \"朋友圈\",\n  \"sleepTimeMin\": 5,\n  \"sleepTimeMax\": 8,\n  \"optSleepTimeStart\": 0.5,\n  \"optSleepTimeEnd\": 1,\n  \"stopIfTooManyRequests\": true,\n  \"templateId\": \"\",\n  \"autoStart\": true\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend_apply/create",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend_apply",
+                "create"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const d = j?.data || {};",
+                  "const logId = d?.logId || d?.data?.logId || '';",
+                  "if (logId) pm.collectionVariables.set('FRIEND_APPLY_LOG_ID', String(logId));",
+                  "pm.test('创建加好友任务返回 logId', function () {",
+                  "  pm.expect(logId).to.not.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "带昵称加好友",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taskName\": \"带昵称加好友\",\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"selectedResources\": [\n    {\n      \"id\": \"{{RESOURCE_ID}}\",\n      \"keyword\": \"wxid_target_002\",\n      \"nickname\": \"王小明\"\n    }\n  ],\n  \"applyMessage\": \"你好王小明，我是XX\",\n  \"tags\": [\"活动\"],\n  \"remark\": \"来源:活动名单\",\n  \"permission\": \"朋友圈\",\n  \"sleepTimeMin\": 5,\n  \"sleepTimeMax\": 8,\n  \"optSleepTimeStart\": 0.5,\n  \"optSleepTimeEnd\": 1,\n  \"stopIfTooManyRequests\": true,\n  \"templateId\": \"\",\n  \"autoStart\": true\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend_apply/create",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend_apply",
+                "create"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const d = j?.data || {};",
+                  "const logId = d?.logId || d?.data?.logId || '';",
+                  "if (logId) pm.collectionVariables.set('FRIEND_APPLY_LOG_ID', String(logId));",
+                  "pm.test('创建加好友任务返回 logId', function () {",
+                  "  pm.expect(logId).to.not.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "资源上传（批量导入）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rows\": [\n    { \"keyword\": \"wxid_target_1001\", \"nickname\": \"导入资源1\" },\n    { \"keyword\": \"wxid_target_1002\", \"nickname\": \"导入资源2\" }\n  ],\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend-apply-resources/import",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend-apply-resources",
+                "import"
+              ]
+            }
+          }
+        },
+        {
+          "name": "资源添加",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyword\": \"wxid_target_new\",\n  \"nickname\": \"新增资源\",\n  \"userId\": \"{{USER_ID}}\",\n  \"tenantId\": \"{{TENANT_ID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend-apply-resources",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend-apply-resources"
+              ]
+            }
+          }
+        },
+        {
+          "name": "资源查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend-apply-resources?page=1&pageSize=20&userId={{USER_ID}}&tenantId={{TENANT_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend-apply-resources"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{USER_ID}}"
+                },
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "资源删除",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend-apply-resources/{{RESOURCE_ID}}?userId={{USER_ID}}&tenantId={{TENANT_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend-apply-resources",
+                "{{RESOURCE_ID}}"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{USER_ID}}"
+                },
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "加好友历史查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend_apply/tasks?page=1&pageSize=20&userId={{USER_ID}}&tenantId={{TENANT_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend_apply",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{USER_ID}}"
+                },
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. 发朋友圈",
+      "item": [
+        {
+          "name": "发朋友圈",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"userWxName\": {\n      \"wxName\": \"{{WX_NAME}}\",\n      \"wxVersion\": 4,\n      \"hwnd\": {{WX_HWND}}\n    },\n    \"userId\": \"{{USER_ID}}\",\n    \"tenantId\": \"{{TENANT_ID}}\",\n    \"moments\": [\n      {\n        \"momentType\": \"image_text\",\n        \"momentContent\": \"这是一条场景化朋友圈测试\",\n        \"momentImages\": [],\n        \"whoCanSee\": {\n          \"type\": \"私密\",\n          \"list\": {\n            \"tags\": [],\n            \"friends\": []\n          }\n        }\n      }\n    ],\n    \"deleteFirst\": false,\n    \"optStartTime\": 0,\n    \"optEndTime\": 1\n  }\n]"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/post_moments",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "post_moments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "朋友圈历史查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/moment/tasks?page=1&pageSize=20&userId={{USER_ID}}&tenantId={{TENANT_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "moment",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{USER_ID}}"
+                },
+                {
+                  "key": "tenantId",
+                  "value": "{{TENANT_ID}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "历史详情查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/moment/tasks/{{MOMENT_LOG_ID}}/detail",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "moment",
+                "tasks",
+                "{{MOMENT_LOG_ID}}",
+                "detail"
+              ]
+            }
+          }
+        },
+        {
+          "name": "失败补发",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logId\": \"{{MOMENT_LOG_ID}}\",\n  \"mode\": \"retry_failed\",\n  \"wxInfo\": {\n    \"wxName\": \"{{WX_NAME}}\",\n    \"hwnd\": {{WX_HWND}}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/moment/execute",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "moment",
+                "execute"
+              ]
+            }
+          }
+        },
+        {
+          "name": "断点续发",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logId\": \"{{MOMENT_LOG_ID}}\",\n  \"mode\": \"resume\",\n  \"wxInfo\": {\n    \"wxName\": \"{{WX_NAME}}\",\n    \"hwnd\": {{WX_HWND}}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/moment/execute",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "moment",
+                "execute"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. 快捷回复",
+      "item": [
+        {
+          "name": "快捷回复消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "0"
+              },
+              {
+                "key": "x-auth-type",
+                "value": "client"
+              },
+              {
+                "key": "x-client-id",
+                "value": "{{CLIENT_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hwnd\": {{WX_HWND}},\n  \"replyText\": \"您好，已收到您的消息\",\n  \"clear\": true,\n  \"authType\": \"client\"\n }"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/mcp/send_current_chat_reply",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "mcp",
+                "send_current_chat_reply"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. 自动通过好友申请",
+      "item": [
+        {
+          "name": "通过好友申请",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taskName\": \"自动通过好友申请\",\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"greetEnabled\": false,\n  \"greetMessages\": [],\n  \"autoStart\": true \n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend_accept/create",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend_accept",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "通过好友申请并打招呼",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taskName\": \"自动通过并打招呼\",\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxVersion\": \"4\",\n  \"hwnd\": {{WX_HWND}},\n  \"greetEnabled\": true,\n  \"greetMessages\": [\n    {\"msg\": \"你好，很高兴认识你\", \"msgImgUrl\": \"\", \"msgFileUrl\": \"\"}\n  ],\n  \"greetWaitSeconds\": 3,\n  \"autoStart\": true \n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/friend_accept/create",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "friend_accept",
+                "create"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. 定时任务",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const d = new Date(Date.now() + 60 * 1000);",
+              "const pad = (n) => String(n).padStart(2, '0');",
+              "const y = d.getFullYear();",
+              "const m = pad(d.getMonth() + 1);",
+              "const day = pad(d.getDate());",
+              "const hh = pad(d.getHours());",
+              "const mm = pad(d.getMinutes());",
+              "const ss = pad(d.getSeconds());",
+              "const tz = -d.getTimezoneOffset();",
+              "const sign = tz >= 0 ? '+' : '-';",
+              "const tzh = pad(Math.floor(Math.abs(tz) / 60));",
+              "const tzm = pad(Math.abs(tz) % 60);",
+              "const executeTime = `${y}-${m}-${day}T${hh}:${mm}:${ss}${sign}${tzh}:${tzm}`;",
+              "pm.collectionVariables.set('EXECUTE_TIME', executeTime);"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "定时群发",
+          "item": [
+            {
+              "name": "指定时间执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时群发-指定时间\",\n  \"taskType\": \"message_sending\",\n  \"triggerType\": \"date\",\n  \"triggerConf\": {},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"relaxedMode\": true,\n  \"payload\": {\n    \"userWxName\": \"{{WX_NAME}}\",\n    \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n    \"wxVersion\": \"4\",\n    \"hwnd\": {{WX_HWND}},\n    \"selectMode\": \"contacts\",\n    \"receiverMode\": \"include\",\n    \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}],\n    \"messages\": [{\"msg\": \"定时群发测试\", \"msgImgUrl\": \"{{IMG_URL}}\", \"msgFileUrl\": \"{{FILE_URL}}\"}]\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每10分钟执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"taskName\": \"定时群发-每10分钟\",\n  \"taskType\": \"message_sending\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxName\": \"{{WX_NAME}}\",\n  \"triggerType\": \"cron\",\n  \"executeTime\": null,\n  \"triggerConf\": {\n    \"second\": \"0\",\n    \"minute\": \"*/10\",\n    \"hour\": \"*\",\n    \"day\": \"*\",\n    \"month\": \"*\",\n    \"day_of_week\": \"*\"\n  },\n  \"payload\": {\n    \"userWxName\": \"{{WX_NAME}}\",\n    \"wxVersion\": \"4\",\n    \"hwnd\": {{WX_HWND}},\n    \"name\": \"\",\n    \"taskName\": \"\",\n    \"messages\": [{\"msg\": \"每10分钟群发\", \"msgImgUrl\": \"\", \"msgFileUrl\": \"\", \"sendOrder\": 0}],\n    \"receiverMode\": \"include\",\n    \"selectMode\": \"contacts\",\n    \"selectedTags\": [],\n    \"selectedGroups\": [],\n    \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n    \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"name\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"variables\": \"\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"remark\": \"\", \"type\": 0}],\n    \"logInfo\": 1,\n    \"checkDelete\": 0,\n    \"searchType\": 0,\n    \"sendSleepTimeStart\": 0.5,\n    \"sendSleepTimeEnd\": 1,\n    \"optSleepTimeStart\": 0,\n    \"optSleepTimeEnd\": 0.5,\n    \"batchSize\": 50,\n    \"batchSleep\": 5,\n    \"contentType\": 0,\n    \"storage\": \"localDB\",\n    \"plannedUsage\": 1,\n    \"userId\": \"{{USER_ID}}\",\n    \"tenantId\": \"{{TENANT_ID}}\",\n    \"relaxedMode\": false\n  },\n  \"relaxedMode\": false,\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"userId\": \"{{USER_ID}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每2小时执行一次",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"taskName\": \"定时群发-每2小时\",\n  \"taskType\": \"message_sending\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"wxName\": \"{{WX_NAME}}\",\n  \"triggerType\": \"cron\",\n  \"executeTime\": null,\n  \"triggerConf\": {\n    \"second\": \"0\",\n    \"minute\": \"0\",\n    \"hour\": \"*/2\",\n    \"day\": \"*\",\n    \"month\": \"*\",\n    \"day_of_week\": \"*\"\n  },\n  \"payload\": {\n    \"userWxName\": \"{{WX_NAME}}\",\n    \"wxVersion\": \"4\",\n    \"hwnd\": {{WX_HWND}},\n    \"name\": \"\",\n    \"taskName\": \"\",\n    \"messages\": [{\"msg\": \"每2小时群发\", \"msgImgUrl\": \"\", \"msgFileUrl\": \"\", \"sendOrder\": 0}],\n    \"receiverMode\": \"include\",\n    \"selectMode\": \"contacts\",\n    \"selectedTags\": [],\n    \"selectedGroups\": [],\n    \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n    \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"name\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"variables\": \"\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"remark\": \"\", \"type\": 0}],\n    \"logInfo\": 1,\n    \"checkDelete\": 0,\n    \"searchType\": 0,\n    \"sendSleepTimeStart\": 0.5,\n    \"sendSleepTimeEnd\": 1,\n    \"optSleepTimeStart\": 0,\n    \"optSleepTimeEnd\": 0.5,\n    \"batchSize\": 50,\n    \"batchSleep\": 5,\n    \"contentType\": 0,\n    \"storage\": \"localDB\",\n    \"plannedUsage\": 1,\n    \"userId\": \"{{USER_ID}}\",\n    \"tenantId\": \"{{TENANT_ID}}\",\n    \"relaxedMode\": false\n  },\n  \"relaxedMode\": false,\n  \"tenantId\": \"{{TENANT_ID}}\",\n  \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n  \"userWxName\": \"{{WX_NAME}}\",\n  \"userId\": \"{{USER_ID}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每天9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时群发-每天9点\",\n  \"taskType\": \"message_sending\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"second\": \"0\", \"minute\": \"0\", \"hour\": \"9\", \"day\": \"*\", \"month\": \"*\", \"day_of_week\": \"*\"},\n  \"executeTime\": null,\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"selectMode\": \"contacts\", \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}], \"messages\": [{\"msg\": \"每天9点群发\"}] }\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每周一早上9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时群发-每周一9点\",\n  \"taskType\": \"message_sending\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"second\": \"0\", \"minute\": \"0\", \"hour\": \"9\", \"day\": \"*\", \"month\": \"*\", \"day_of_week\": \"mon\"},\n  \"executeTime\": null,\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"selectMode\": \"contacts\", \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}], \"messages\": [{\"msg\": \"每周一9点群发\"}] }\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每月1号早上9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时群发-每月1号9点\",\n  \"taskType\": \"message_sending\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"day\": \"1\", \"hour\": 9, \"minute\": 0},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"selectMode\": \"contacts\", \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}], \"messages\": [{\"msg\": \"每月1号9点群发\"}] }\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每年1月1号早上9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时群发-每年0101 9点\",\n  \"taskType\": \"message_sending\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"month\": \"1\", \"day\": \"1\", \"hour\": 9, \"minute\": 0},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"selectMode\": \"contacts\", \"selectedContacts\": [{\"id\": \"{{CONTACT_ID}}\", \"nickName\": \"{{CONTACT_NICK_NAME}}\", \"wxNo\": \"{{CONTACT_WX_NO}}\", \"callName\": \"{{CONTACT_CALL_NAME}}\", \"remark\": \"\", \"type\": 0}], \"messages\": [{\"msg\": \"每年1月1日9点群发\"}] }\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "定时发朋友圈",
+          "item": [
+            {
+              "name": "指定时间",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时朋友圈-指定时间\",\n  \"taskType\": \"post_moment_batch\",\n  \"triggerType\": \"date\",\n  \"triggerConf\": {},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": [\n    {\n      \"userWxName\": {\"wxName\": \"{{WX_NAME}}\", \"wxVersion\": 4, \"hwnd\": {{WX_HWND}}},\n      \"userId\": \"{{USER_ID}}\",\n      \"tenantId\": \"{{TENANT_ID}}\",\n      \"moments\": [{\"momentType\": \"image_text\", \"momentContent\": \"定时朋友圈\", \"momentImages\": [], \"whoCanSee\": {\"type\": \"私密\", \"list\": {\"tags\": [], \"friends\": []}}}]\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每10分钟执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时朋友圈-每10分钟\",\n  \"taskType\": \"post_moment_batch\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"second\": \"0\", \"minute\": \"*/10\", \"hour\": \"*\", \"day\": \"*\", \"month\": \"*\", \"day_of_week\": \"*\"},\n  \"executeTime\": null,\n  \"payload\": [{\"userWxName\": {\"wxName\": \"{{WX_NAME}}\", \"wxVersion\": 4, \"hwnd\": {{WX_HWND}}}, \"userId\": \"{{USER_ID}}\", \"tenantId\": \"{{TENANT_ID}}\", \"moments\": [{\"momentType\": \"text\", \"momentContent\": \"每10分钟朋友圈\", \"momentImages\": [], \"whoCanSee\": {\"type\": \"公开\", \"list\": {\"tags\": [], \"friends\": []}}}]}]\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每2小时执行一次",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时朋友圈-每2小时\",\n  \"taskType\": \"post_moment_batch\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"second\": \"0\", \"minute\": \"0\", \"hour\": \"*/2\", \"day\": \"*\", \"month\": \"*\", \"day_of_week\": \"*\"},\n  \"executeTime\": null,\n  \"payload\": [{\"userWxName\": {\"wxName\": \"{{WX_NAME}}\", \"wxVersion\": 4, \"hwnd\": {{WX_HWND}}}, \"userId\": \"{{USER_ID}}\", \"tenantId\": \"{{TENANT_ID}}\", \"moments\": [{\"momentType\": \"text\", \"momentContent\": \"每2小时朋友圈\", \"momentImages\": [], \"whoCanSee\": {\"type\": \"公开\", \"list\": {\"tags\": [], \"friends\": []}}}]}]\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每天9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时朋友圈-每天9点\",\n  \"taskType\": \"post_moment_batch\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"hour\": 9, \"minute\": 0},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": [{\"userWxName\": {\"wxName\": \"{{WX_NAME}}\", \"wxVersion\": 4, \"hwnd\": {{WX_HWND}}}, \"userId\": \"{{USER_ID}}\", \"tenantId\": \"{{TENANT_ID}}\", \"moments\": [{\"momentType\": \"text\", \"momentContent\": \"每天9点朋友圈\", \"momentImages\": [], \"whoCanSee\": {\"type\": \"公开\", \"list\": {\"tags\": [], \"friends\": []}}}]}]\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每周1早上9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时朋友圈-每周一9点\",\n  \"taskType\": \"post_moment_batch\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"day_of_week\": \"mon\", \"hour\": 9, \"minute\": 0},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": [{\"userWxName\": {\"wxName\": \"{{WX_NAME}}\", \"wxVersion\": 4, \"hwnd\": {{WX_HWND}}}, \"userId\": \"{{USER_ID}}\", \"tenantId\": \"{{TENANT_ID}}\", \"moments\": [{\"momentType\": \"text\", \"momentContent\": \"每周一9点朋友圈\", \"momentImages\": [], \"whoCanSee\": {\"type\": \"公开\", \"list\": {\"tags\": [], \"friends\": []}}}]}]\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每月1号早上9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时朋友圈-每月1号9点\",\n  \"taskType\": \"post_moment_batch\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"day\": \"1\", \"hour\": 9, \"minute\": 0},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": [{\"userWxName\": {\"wxName\": \"{{WX_NAME}}\", \"wxVersion\": 4, \"hwnd\": {{WX_HWND}}}, \"userId\": \"{{USER_ID}}\", \"tenantId\": \"{{TENANT_ID}}\", \"moments\": [{\"momentType\": \"text\", \"momentContent\": \"每月1号9点朋友圈\", \"momentImages\": [], \"whoCanSee\": {\"type\": \"公开\", \"list\": {\"tags\": [], \"friends\": []}}}]}]\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每年1月1号早上9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时朋友圈-每年0101 9点\",\n  \"taskType\": \"post_moment_batch\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"month\": \"1\", \"day\": \"1\", \"hour\": 9, \"minute\": 0},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": [{\"userWxName\": {\"wxName\": \"{{WX_NAME}}\", \"wxVersion\": 4, \"hwnd\": {{WX_HWND}}}, \"userId\": \"{{USER_ID}}\", \"tenantId\": \"{{TENANT_ID}}\", \"moments\": [{\"momentType\": \"text\", \"momentContent\": \"每年0101 9点朋友圈\", \"momentImages\": [], \"whoCanSee\": {\"type\": \"公开\", \"list\": {\"tags\": [], \"friends\": []}}}]}]\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "定时加好友",
+          "item": [
+            {
+              "name": "指定时间",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时加好友-指定时间\",\n  \"taskType\": \"friend_apply\",\n  \"triggerType\": \"date\",\n  \"triggerConf\": {},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": {\n    \"userWxName\": \"{{WX_NAME}}\",\n    \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n    \"wxVersion\": \"4\",\n    \"hwnd\": {{WX_HWND}},\n    \"selectedResources\": [{\"id\": \"{{RESOURCE_ID}}\", \"keyword\": \"wxid_target_001\"}],\n    \"applyMessage\": \"你好\",\n    \"autoStart\": false\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每10分钟执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时加好友-每10分钟\",\n  \"taskType\": \"friend_apply\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"second\": \"0\", \"minute\": \"*/10\", \"hour\": \"*\", \"day\": \"*\", \"month\": \"*\", \"day_of_week\": \"*\"},\n  \"executeTime\": null,\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"selectedResources\": [{\"id\":\"{{RESOURCE_ID}}\",\"keyword\":\"wxid_target_001\"}], \"applyMessage\": \"你好\"}\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每2小时执行一次",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时加好友-每2小时\",\n  \"taskType\": \"friend_apply\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"second\": \"0\", \"minute\": \"0\", \"hour\": \"*/2\", \"day\": \"*\", \"month\": \"*\", \"day_of_week\": \"*\"},\n  \"executeTime\": null,\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"selectedResources\": [{\"id\":\"{{RESOURCE_ID}}\",\"keyword\":\"wxid_target_001\"}], \"applyMessage\": \"你好\"}\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每天9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时加好友-每天9点\",\n  \"taskType\": \"friend_apply\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"hour\":9,\"minute\":0},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"selectedResources\": [{\"id\":\"{{RESOURCE_ID}}\",\"keyword\":\"wxid_target_001\"}], \"applyMessage\": \"你好\"}\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "定时通过好友申请",
+          "item": [
+            {
+              "name": "指定时间",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时通过好友申请-指定时间\",\n  \"taskType\": \"friend_accept\",\n  \"triggerType\": \"date\",\n  \"triggerConf\": {},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": {\n    \"userWxName\": \"{{WX_NAME}}\",\n    \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\",\n    \"wxVersion\": \"4\",\n    \"hwnd\": {{WX_HWND}},\n    \"greetEnabled\": false,\n    \"greetMessages\": []\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每10分钟执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时通过好友申请-每10分钟\",\n  \"taskType\": \"friend_accept\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"second\": \"0\", \"minute\": \"*/10\", \"hour\": \"*\", \"day\": \"*\", \"month\": \"*\", \"day_of_week\": \"*\"},\n  \"executeTime\": null,\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"greetEnabled\": false, \"greetMessages\": []}\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每2小时执行一次",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时通过好友申请-每2小时\",\n  \"taskType\": \"friend_accept\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"second\": \"0\", \"minute\": \"0\", \"hour\": \"*/2\", \"day\": \"*\", \"month\": \"*\", \"day_of_week\": \"*\"},\n  \"executeTime\": null,\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"greetEnabled\": false, \"greetMessages\": []}\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "每天9点执行",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "tenant-id",
+                    "value": "{{TENANT_ID}}"
+                  },
+                  {
+                    "key": "user-id",
+                    "value": "{{USER_ID}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"wxName\": \"{{WX_NAME}}\",\n  \"wxId\": \"{{WX_INSTANCE_ID}}\",\n  \"taskName\": \"定时通过好友申请-每天9点\",\n  \"taskType\": \"friend_accept\",\n  \"triggerType\": \"cron\",\n  \"triggerConf\": {\"hour\": 9, \"minute\": 0},\n  \"executeTime\": \"{{EXECUTE_TIME}}\",\n  \"payload\": {\"userWxName\": \"{{WX_NAME}}\", \"wxInstanceId\": \"{{WX_INSTANCE_ID}}\", \"wxVersion\": \"4\", \"hwnd\": {{WX_HWND}}, \"greetEnabled\": false, \"greetMessages\": []}\n}"
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/api/scheduled_task/create",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "scheduled_task",
+                    "create"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12. 定时任务管理",
+      "item": [
+        {
+          "name": "定时任务查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/list?page=1&pageSize=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "list"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const list = Array.isArray(j?.data?.list) ? j.data.list : [];",
+                  "const first = list[0] || {};",
+                  "const taskId = first?.id || first?.taskId || '';",
+                  "if (taskId !== '') pm.collectionVariables.set('SCHEDULED_TASK_ID', String(taskId));",
+                  "pm.test('定时任务查询成功', function () {",
+                  "  pm.expect(Array.isArray(list)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "定时任务修改",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"wxName\":\"{{WX_NAME}}\",\"wxId\":\"{{WX_INSTANCE_ID}}\",\"taskName\":\"定时任务-修改\",\"taskType\":\"message_sending\",\"triggerType\":\"date\",\"triggerConf\":{},\"executeTime\":\"{{EXECUTE_TIME}}\",\"payload\":{\"userWxName\":\"{{WX_NAME}}\",\"wxInstanceId\":\"{{WX_INSTANCE_ID}}\",\"wxVersion\":\"4\",\"hwnd\":{{WX_HWND}},\"selectMode\":\"contacts\",\"receiverMode\":\"include\",\"selectedContacts\":[{\"id\":\"{{CONTACT_ID}}\",\"nickName\":\"{{CONTACT_NICK_NAME}}\",\"wxNo\":\"{{CONTACT_WX_NO}}\",\"callName\":\"{{CONTACT_CALL_NAME}}\",\"remark\":\"\",\"type\":0}],\"messages\":[{\"msg\":\"编辑后的定时群发\"}]},\"relaxedMode\":false}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/edit/{{SCHEDULED_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "edit",
+                "{{SCHEDULED_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务删除",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/delete/{{SCHEDULED_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "delete",
+                "{{SCHEDULED_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务停止（取消）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/cancel/{{SCHEDULED_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "cancel",
+                "{{SCHEDULED_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务暂停",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/pause/{{SCHEDULED_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "pause",
+                "{{SCHEDULED_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务恢复",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/resume/{{SCHEDULED_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "resume",
+                "{{SCHEDULED_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务批量删除",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"ids\":[\"{{SCHEDULED_TASK_ID}}\"]}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/batch_delete",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "batch_delete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务确认执行",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/confirm/{{SCHEDULED_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "confirm",
+                "{{SCHEDULED_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务延迟执行",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"delayMinutes\":5}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/delay/{{SCHEDULED_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "delay",
+                "{{SCHEDULED_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务确认弹窗重开",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/confirm_popup/{{SCHEDULED_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "confirm_popup",
+                "{{SCHEDULED_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务执行记录列表",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/executions?taskId={{SCHEDULED_TASK_ID}}&limit=50&offset=0",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "executions"
+              ],
+              "query": [
+                {
+                  "key": "taskId",
+                  "value": "{{SCHEDULED_TASK_ID}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const list = Array.isArray(j?.data?.list) ? j.data.list : (Array.isArray(j?.data) ? j.data : []);",
+                  "const first = list[0] || {};",
+                  "const executionId = first?.id || first?.executionId || '';",
+                  "if (executionId !== '') pm.collectionVariables.set('SCHEDULED_EXECUTION_ID', String(executionId));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "定时任务执行记录详情",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/execution/{{SCHEDULED_EXECUTION_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "execution",
+                "{{SCHEDULED_EXECUTION_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "定时任务未来触发时间",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/scheduled_task/next_fire_times?taskId={{SCHEDULED_TASK_ID}}&n=5",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "scheduled_task",
+                "next_fire_times"
+              ],
+              "query": [
+                {
+                  "key": "taskId",
+                  "value": "{{SCHEDULED_TASK_ID}}"
+                },
+                {
+                  "key": "n",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. 实时任务",
+      "item": [
+        {
+          "name": "实时任务查询",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/get_running_tasks",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "get_running_tasks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {};",
+                  "try { j = pm.response.json(); } catch (e) {}",
+                  "const list = Array.isArray(j?.data?.tasks) ? j.data.tasks : [];",
+                  "const first = list[0] || {};",
+                  "const taskId = first?.id || '';",
+                  "if (taskId !== '') pm.collectionVariables.set('RUNTIME_TASK_ID', String(taskId));",
+                  "pm.test('实时任务查询成功', function () {",
+                  "  pm.expect(Array.isArray(list)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "实时任务停止",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/stop_task/{{RUNTIME_TASK_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "stop_task",
+                "{{RUNTIME_TASK_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "实时任务删除（按微信批量，若有）",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "tenant-id",
+                "value": "{{TENANT_ID}}"
+              },
+              {
+                "key": "user-id",
+                "value": "{{USER_ID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/wx/{{WX_NAME}}/tasks",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "wx",
+                "{{WX_NAME}}",
+                "tasks"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://127.0.0.1:6003",
+      "type": "string"
+    },
+    {
+      "key": "TENANT_ID",
+      "value": "154",
+      "type": "string"
+    },
+    {
+      "key": "CLIENT_ID",
+      "value": "msghelper-client-154",
+      "type": "string"
+    },
+    {
+      "key": "CLIENT_SECRET",
+      "value": "3334d486910e48e1837b05a46a187189",
+      "type": "string"
+    },
+    {
+      "key": "ACCESS_TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "REFRESH_TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "USER_ID",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "WX_NAME",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "WX_NO",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "WX_INSTANCE_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "WX_HWND",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "CONTACT_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "CONTACT_NICK_NAME",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "CONTACT_WX_NO",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "CONTACT_CALL_NAME",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "GROUP_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "GROUP_NAME",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "TAG_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "RESOURCE_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "MASS_SEND_LOG_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "FRIEND_APPLY_LOG_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "LOG_ID",
+      "value": "",
+      "type": "string",
+      "disabled": false
+    },
+    {
+      "key": "MOMENT_LOG_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "IMG_URL",
+      "value": "https://www.msghelper.top/wp-content/uploads/2024/02/laptop3.jpg",
+      "type": "string"
+    },
+    {
+      "key": "FILE_URL",
+      "value": "https://www.msghelper.top/wp-content/uploads/2024/02/image2.jpg",
+      "type": "string"
+    },
+    {
+      "key": "EXECUTE_TIME",
+      "value": "2026-06-27T09:00:00+08:00",
+      "type": "string"
+    },
+    {
+      "key": "SCHEDULED_TASK_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "SCHEDULED_EXECUTION_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "RUNTIME_TASK_ID",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
