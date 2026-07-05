@@ -39,7 +39,7 @@
 ## 第一步：导入集合
 
 1. 打开 Postman，点击左上角 **Import**。
-![导入集合](images\1.import.png)
+![导入集合]([images\1.import.png](https://github.com/lileihappy123/msghelper/blob/main/images/1.import.png))
 2. 选择文件，找到本目录下的  
    `MsgHelper_OpenAPI_场景化集合.postman_collection.json`，点击打开。
 3. 左侧 Collections 面板出现 **MsgHelper OpenAPI 场景化测试集合** 即成功。
