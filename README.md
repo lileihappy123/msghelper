@@ -200,3 +200,9 @@
 
 - 想了解每个字段的详细含义 → 查看 [API_DETAILED_DOCUMENTATION.md](API_DETAILED_DOCUMENTATION.md)
 - 完整场景列表（定时任务、加好友、发朋友圈等）→ 直接在 Postman 集合里按分组逐一探索
+
+---
+
+## 技术沟通
+
+![联系微信](https://github.com/lileihappy123/msghelper/blob/main/images/8.wx.png)
