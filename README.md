@@ -43,7 +43,7 @@
 2. 选择文件，找到本目录下的  
    `MsgHelper_OpenAPI_场景化集合.postman_collection.json`，点击打开。
 3. 左侧 Collections 面板出现 **MsgHelper OpenAPI 场景化测试集合** 即成功。
-![MsgHelper OpenAPI 场景化测试集合](images\2.imported.png)
+![MsgHelper OpenAPI 场景化测试集合](https://github.com/lileihappy123/msghelper/blob/main/images/2.imported.png)
 
 ---
 
@@ -51,7 +51,7 @@
 
 1. 在左侧集合名上单击，右侧打开集合详情，切换到 **Variables** 标签页。
 2. 找到下列变量，在 **CURRENT VALUE** 列填入你的值：
-![填写变量](images\3.variables.png)
+![填写变量](https://github.com/lileihappy123/msghelper/blob/main/images/3.variables.png)
 
 | 变量名 | 填什么 | 示例 |
 |---|---|---|
@@ -81,7 +81,7 @@
 }
 ```
 
-![登录成功](images\4.login.png)
+![登录成功](https://github.com/lileihappy123/msghelper/blob/main/images/4.login.png)
 
 ---
 
@@ -91,7 +91,7 @@
 
 点击 **Send**，响应里能看到你的微信昵称和 hwnd（窗口句柄）。
 
-![获取已登录的微信](images\5.get_opened_wx.png)
+![获取已登录的微信](https://github.com/lileihappy123/msghelper/blob/main/images/5.get_opened_wx.png)
 
 > ❗ 如果返回空数组，说明微信窗口未被识别。检查微信是否已登录并且窗口可见（不要最小化到托盘）。
 >
@@ -111,7 +111,7 @@
 
 点击 **Send**。
 
-![绑定微信](images\6.bind_wx.png)
+![绑定微信](https://github.com/lileihappy123/msghelper/blob/main/images/6.bind_wx.png)
 
 ✅ 成功标志：响应 `code: 200`，变量 `WX_INSTANCE_ID` 已自动填入。
 
@@ -125,7 +125,7 @@
 
 找一个你想发送消息的微信好友，填入他的微信号（`wxNo`）和昵称（`nickName`），点击 **Send**。
 
-![手动创建好友](images\7.add_friend.png)
+![手动创建好友](https://github.com/lileihappy123/msghelper/blob/main/images/7.add_friend.png)
 
 ---
 
